@@ -1,0 +1,10 @@
+[package]
+name = "dbgcmd"
+version = "0.1.0"
+authors = ["Claire Harris <wishing.engine@gmail.com>"]
+edition = "2018"
+
+[features]
+enabled_in_release = []
+
+[dependencies]
