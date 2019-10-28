@@ -8,3 +8,4 @@ edition = "2018"
 enabled_in_release = []
 
 [dependencies]
+itertools = "~0.8.0"

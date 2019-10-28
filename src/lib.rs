@@ -1,9 +1,14 @@
+use std::collections::VecDeque;
+
+#[cfg(any(debug_assertions, feature = "enabled_in_release"))]
+use itertools::Itertools;
+
 #[derive(Default, Clone, PartialEq, Eq)]
 #[cfg(any(debug_assertions, feature = "enabled_in_release"))]
 pub struct Console {
     shown: bool,
     entry: String,
-    history: Vec<String>,
+    history: VecDeque<String>,
     cursor: Option<usize>,
 }
 
@@ -24,8 +29,7 @@ impl Console {
         let result = entry.parse();
 
         self.history
-            .push(std::mem::replace(&mut self.entry, String::new()));
-        self.history.dedup();
+            .push_front(std::mem::replace(&mut self.entry, String::new()));
         self.cursor = None;
 
         result
@@ -42,13 +46,25 @@ impl Console {
         self.history.iter().map(String::as_ref)
     }
 
+    pub fn history_deduped(&self) -> impl Iterator<Item = &str> {
+        self.history.iter().map(String::as_ref).dedup()
+    }
+
+    pub fn history_len(&self) -> usize {
+        self.history.len()
+    }
+
     pub fn set_entry(&mut self, entry: String) {
         self.entry = entry;
         self.cursor = None;
     }
 
     pub fn receive_char(&mut self, ch: char) {
-        self.entry.push(ch);
+        if self.cursor.is_some() {
+            self.entry = self.entry().to_owned();
+            self.cursor = None;
+        }
+        self.entry.push(ch)
     }
 
     pub fn receive_char_if<F: Fn(char) -> bool>(&mut self, ch: char, filter: F) -> bool {
@@ -60,6 +76,10 @@ impl Console {
     }
 
     pub fn backspace(&mut self) {
+        if self.cursor.is_some() {
+            self.entry = self.entry().to_owned();
+            self.cursor = None;
+        }
         self.entry.pop();
     }
 
@@ -73,17 +93,16 @@ impl Console {
 
     pub fn up(&mut self) {
         self.cursor = match self.cursor {
-            None => Some(self.history.len() - 1),
-            Some(n) if n > 0 => Some(n - 1),
+            None => Some(0),
+            Some(n) if n < (self.history.len() - 1) => Some(n + 1),
             it => it,
         }
     }
 
     pub fn down(&mut self) {
         self.cursor = match self.cursor {
-            Some(n) if n == self.history.len() - 1 => None,
-            Some(n) => Some(n + 1),
-            None => None,
+            Some(n) if n > 0 => Some(n - 1),
+            _ => None,
         }
     }
 
@@ -116,6 +135,14 @@ impl Console {
 
     pub fn history(&self) -> impl Iterator<Item = &str> {
         std::iter::empty()
+    }
+
+    pub fn history_deduped(&self) -> impl Iterator<Item = &str> {
+        std::iter::empty()
+    }
+
+    pub fn history_len(&self) -> usize {
+        0
     }
 
     pub fn shown(&self) -> bool {
@@ -186,15 +213,22 @@ mod debug_tests {
 
         console.set_entry("2".into());
         console.confirm::<String>().unwrap();
-        assert_eq!(console.history().collect::<Vec<_>>(), vec!["1", "2"]);
+        assert_eq!(console.history().collect::<Vec<_>>(), vec!["2", "1"]);
 
         console.set_entry("3".into());
         console.confirm::<String>().unwrap();
-        assert_eq!(console.history().collect::<Vec<_>>(), vec!["1", "2", "3"]);
+        assert_eq!(console.history().collect::<Vec<_>>(), vec!["3", "2", "1"]);
 
         console.set_entry("3".into());
         console.confirm::<String>().unwrap();
-        assert_eq!(console.history().collect::<Vec<_>>(), vec!["1", "2", "3"]);
+        assert_eq!(
+            console.history().collect::<Vec<_>>(),
+            vec!["3", "3", "2", "1"]
+        );
+        assert_eq!(
+            console.history_deduped().collect::<Vec<_>>(),
+            vec!["3", "2", "1"]
+        );
     }
 
     #[test]
@@ -266,6 +300,22 @@ mod debug_tests {
         assert_eq!(console.confirm::<usize>(), "1a0".parse::<usize>());
         assert_eq!(console.entry(), "");
     }
+
+    #[test]
+    fn can_edit_history_items() {
+        let mut console = Console::new();
+        console.set_entry("100".into());
+        assert_eq!(console.confirm::<usize>().unwrap(), 100);
+
+        console.up();
+        console.receive_char('0');
+        assert_eq!(console.confirm::<usize>().unwrap(), 1000);
+
+        console.up();
+        console.backspace();
+        console.backspace();
+        assert_eq!(console.confirm::<usize>().unwrap(), 10);
+    }
 }
 
 #[cfg(test)]
@@ -297,5 +347,9 @@ mod release_tests {
         assert_eq!(console.receive_char_if('a', |_| true), false);
 
         assert_eq!(console.confirm::<String>(), "".parse());
+
+        assert_eq!(console.history_len(), 0);
+        assert!(console.history().empty());
+        assert!(console.history_deduped().empty());
     }
 }
