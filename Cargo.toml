@@ -3,9 +3,22 @@ name = "dbgcmd"
 version = "0.1.0"
 authors = ["Claire Harris <wishing.engine@gmail.com>"]
 edition = "2018"
+description = """
+This is a simple library for implementing command-line-style debug consoles within an application.
+
+It doesn't handle rendering, or the logic of any individual commands. All it does is model the state of the console.
+"""
+repository = "https://github.com/mistodon/dbgcmd"
+readme = "README.md"
+keywords = ["debug", "console"]
+categories = ["games", "game-development", "gui", "command-line-interface"]
+license = "CC0-1.0"
+
+[badges]
+travis-ci = { repository = "mistodon/dbgcmd", branch = "master" }
 
 [features]
-enabled_in_release = []
+force-enabled = []
 
 [dependencies]
 itertools = "~0.8.0"
