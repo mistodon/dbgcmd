@@ -1,6 +1,6 @@
 [package]
 name = "dbgcmd"
-version = "0.2.0"
+version = "0.3.0"
 authors = ["Vi <violet@hey.com>"]
 edition = "2021"
 description = """
@@ -15,7 +15,13 @@ categories = ["games", "game-development", "gui", "command-line-interface"]
 license = "CC0-1.0"
 
 [features]
+default = ["winit"]
 force-enabled = []
+winit = ["dep:winit"]
 
 [dependencies]
 itertools = "~0.8.0"
+
+[dependencies.winit]
+version = "0.29"
+optional = true

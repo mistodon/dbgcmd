@@ -176,6 +176,15 @@ impl Console {
         self.entry.push(ch)
     }
 
+    /// Receive text and append it to the command entry.
+    pub fn receive_text(&mut self, text: &str) {
+        if self.cursor.is_some() {
+            self.entry = self.entry().to_owned();
+            self.cursor = None;
+        }
+        self.entry.push_str(text)
+    }
+
     /// Receive an individual character and append it to the command entry
     /// if the `filter` argument returns true for it.
     ///
@@ -197,6 +206,16 @@ impl Console {
         let accept = filter(ch);
         if accept {
             self.receive_char(ch);
+        }
+        accept
+    }
+
+    /// Receive text and append it to the command entry
+    /// if the `filter` argument returns true for it.
+    pub fn receive_text_if<F: Fn(&str) -> bool>(&mut self, text: &str, filter: F) -> bool {
+        let accept = filter(text);
+        if accept {
+            self.receive_text(text);
         }
         accept
     }
@@ -344,6 +363,59 @@ impl Console {
     pub fn show(&mut self) {}
     pub fn hide(&mut self) {}
     pub fn toggle_shown(&mut self) {}
+}
+
+#[cfg(all(feature = "winit", any(debug_assertions, feature = "force-enabled")))]
+impl Console {
+    pub fn handle_winit_event(&mut self, event: &winit::event::Event<()>) {
+        use winit::{
+            event::{ElementState, Event, WindowEvent},
+            keyboard::{Key, NamedKey},
+        };
+
+        const VALID_CHARS: &str =
+            "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 ._-\"'/\\~";
+
+        if self.shown() {
+            match event {
+                Event::WindowEvent { event, .. } => match event {
+                    WindowEvent::KeyboardInput { event, .. } => {
+                        if event.state == ElementState::Pressed {
+                            match event.logical_key {
+                                Key::Named(NamedKey::Backspace) => {
+                                    self.backspace();
+                                }
+                                Key::Named(NamedKey::ArrowUp) => {
+                                    self.up_deduped();
+                                }
+                                Key::Named(NamedKey::ArrowDown) => {
+                                    self.down_deduped();
+                                }
+                                _ => {
+                                    if let Some(text) = &event.text {
+                                        let text = text.as_ref();
+                                        if VALID_CHARS.contains(text) {
+                                            self.receive_text(text);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    _ => (),
+                },
+                _ => (),
+            }
+        }
+    }
+}
+
+#[cfg(all(
+    feature = "winit",
+    not(any(debug_assertions, feature = "force-enabled"))
+))]
+impl Console {
+    pub fn handle_winit_event(&mut self, _event: &winit::event::Event<()>) {}
 }
 
 #[cfg(test)]
