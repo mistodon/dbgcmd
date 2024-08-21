@@ -130,7 +130,8 @@ impl Console {
         let result = entry.parse();
 
         self.history
-            .push_front(std::mem::replace(&mut self.entry, String::new()));
+            .push_front(entry.to_owned());
+        self.entry.clear();
         self.cursor = None;
 
         result
