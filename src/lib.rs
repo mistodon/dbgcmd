@@ -129,8 +129,7 @@ impl Console {
         let entry = self.entry();
         let result = entry.parse();
 
-        self.history
-            .push_front(entry.to_owned());
+        self.history.push_front(entry.to_owned());
         self.entry.clear();
         self.cursor = None;
 

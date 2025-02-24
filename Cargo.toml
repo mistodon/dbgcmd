@@ -2,7 +2,7 @@
 name = "dbgcmd"
 version = "0.3.0"
 authors = ["Vi <violet@hey.com>"]
-edition = "2021"
+edition = "2024"
 description = """
 This is a simple library for implementing command-line-style debug consoles within an application.
 
@@ -20,8 +20,8 @@ force-enabled = []
 winit = ["dep:winit"]
 
 [dependencies]
-itertools = "~0.8.0"
+itertools = "0.8"
 
 [dependencies.winit]
-version = "0.29"
+version = ">= 0.21"
 optional = true
