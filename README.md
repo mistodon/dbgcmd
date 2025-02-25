@@ -3,7 +3,7 @@ dbgcmd
 
 [![Build Status](https://travis-ci.org/mistodon/dbgcmd.svg?branch=master)](https://travis-ci.org/mistodon/dbgcmd)
 [![Crates.io](https://img.shields.io/crates/v/dbgcmd.svg)](https://crates.io/crates/dbgcmd)
-[![Docs.rs](https://docs.rs/dbgcmd/badge.svg)](https://docs.rs/dbgcmd/0.1.0/dbgcmd/)
+[![Docs.rs](https://docs.rs/dbgcmd/badge.svg)](https://docs.rs/dbgcmd/0.3.0/dbgcmd/)
 
 This is a simple library for implementing command-line-style debug consoles within an application.
 
