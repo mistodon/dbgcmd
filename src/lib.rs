@@ -85,6 +85,22 @@
 //!     assert!(console.entry().is_empty());
 //! }
 //! ```
+//!
+#[cfg(feature = "winit_0_21")]
+pub(crate) use winit_0_21 as winit;
+
+#[cfg(feature = "winit_0_24")]
+pub(crate) use winit_0_24 as winit;
+
+#[cfg(feature = "winit_0_27")]
+pub(crate) use winit_0_27 as winit;
+
+#[cfg(feature = "winit_0_29")]
+pub(crate) use winit_0_29 as winit;
+
+#[cfg(feature = "winit_0_30")]
+pub(crate) use winit_0_30 as winit;
+
 #[cfg(any(debug_assertions, feature = "force-enabled"))]
 use std::collections::VecDeque;
 
@@ -365,7 +381,52 @@ impl Console {
     pub fn toggle_shown(&mut self) {}
 }
 
-#[cfg(all(feature = "winit", any(debug_assertions, feature = "force-enabled")))]
+#[cfg(all(
+    any(feature = "winit_0_21", feature = "winit_0_24", feature = "winit_0_27",),
+    any(debug_assertions, feature = "force-enabled")
+))]
+impl Console {
+    pub fn handle_winit_event(&mut self, event: &winit::event::Event<()>) {
+        use winit::event::{ElementState, Event, VirtualKeyCode, WindowEvent};
+
+        const VALID_CHARS: &str =
+            "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 ._-\"'/\\~";
+
+        if self.shown()
+            && let Event::WindowEvent { event, .. } = event
+        {
+            match event {
+                WindowEvent::KeyboardInput { input, .. }
+                    if input.state == ElementState::Pressed =>
+                {
+                    match input.virtual_keycode {
+                        Some(VirtualKeyCode::Back) => {
+                            self.backspace();
+                        }
+                        Some(VirtualKeyCode::Up) => {
+                            self.up_deduped();
+                        }
+                        Some(VirtualKeyCode::Down) => {
+                            self.down_deduped();
+                        }
+                        _ => (),
+                    }
+                }
+                WindowEvent::ReceivedCharacter(ch) => {
+                    if VALID_CHARS.contains(*ch) {
+                        self.receive_char(*ch);
+                    }
+                }
+                _ => (),
+            }
+        }
+    }
+}
+
+#[cfg(all(
+    any(feature = "winit_0_29", feature = "winit_0_30",),
+    any(debug_assertions, feature = "force-enabled")
+))]
 impl Console {
     pub fn handle_winit_event(&mut self, event: &winit::event::Event<()>) {
         use winit::{
@@ -376,42 +437,42 @@ impl Console {
         const VALID_CHARS: &str =
             "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 ._-\"'/\\~";
 
-        if self.shown() {
-            match event {
-                Event::WindowEvent { event, .. } => match event {
-                    WindowEvent::KeyboardInput { event, .. } => {
-                        if event.state == ElementState::Pressed {
-                            match event.logical_key {
-                                Key::Named(NamedKey::Backspace) => {
-                                    self.backspace();
-                                }
-                                Key::Named(NamedKey::ArrowUp) => {
-                                    self.up_deduped();
-                                }
-                                Key::Named(NamedKey::ArrowDown) => {
-                                    self.down_deduped();
-                                }
-                                _ => {
-                                    if let Some(text) = &event.text {
-                                        let text = text.as_ref();
-                                        if VALID_CHARS.contains(text) {
-                                            self.receive_text(text);
-                                        }
-                                    }
-                                }
-                            }
+        if self.shown()
+            && let Event::WindowEvent { event, .. } = event
+            && let WindowEvent::KeyboardInput { event, .. } = event
+            && event.state == ElementState::Pressed
+        {
+            match event.logical_key {
+                Key::Named(NamedKey::Backspace) => {
+                    self.backspace();
+                }
+                Key::Named(NamedKey::ArrowUp) => {
+                    self.up_deduped();
+                }
+                Key::Named(NamedKey::ArrowDown) => {
+                    self.down_deduped();
+                }
+                _ => {
+                    if let Some(text) = &event.text {
+                        let text = text.as_ref();
+                        if VALID_CHARS.contains(text) {
+                            self.receive_text(text);
                         }
                     }
-                    _ => (),
-                },
-                _ => (),
+                }
             }
         }
     }
 }
 
 #[cfg(all(
-    feature = "winit",
+    any(
+        feature = "winit_0_21",
+        feature = "winit_0_24",
+        feature = "winit_0_27",
+        feature = "winit_0_29",
+        feature = "winit_0_30",
+    ),
     not(any(debug_assertions, feature = "force-enabled"))
 ))]
 impl Console {
